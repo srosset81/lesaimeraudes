@@ -1,0 +1,68 @@
+version: '3.5'
+services:
+  traefik:
+    image: traefik:v2.3
+    container_name: traefik_lesaimeraudes
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=srosset81@gmail.com"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - ./letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  fuseki:
+    image: stain/jena-fuseki:3.10.0
+    container_name: fuseki_lesaimeraudes
+    volumes:
+      - ./data/fuseki:/fuseki
+      - ./data/staging:/staging
+    ports:
+      - "3030:3030"
+    expose:
+      - "3030"
+    environment:
+      ADMIN_PASSWORD: "admin"
+
+  middleware:
+    build: .
+    container_name: middleware_lesaimeraudes
+    depends_on:
+      - fuseki
+      - redis
+    volumes:
+      - ./middleware/logs:/app/logs
+      - ./middleware/actors:/app/actors
+      - ./middleware/jwt:/app/jwt
+      - ./middleware/uploads:/app/uploads
+      - ./data/fuseki/backups:/app/fuseki-backups # Needed to backup fuseki datasets
+    ports:
+      - "3000:3000"
+    expose:
+      - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.middleware.rule=Host(`data.lesaimeraudes.com`)"
+      - "traefik.http.routers.middleware.entrypoints=websecure"
+      - "traefik.http.routers.middleware.tls.certresolver=myresolver"
+
+  redis:
+    image: redis
+    container_name: redis_lesaimeraudes
+    expose:
+      - "6379"
+    volumes:
+      - ./data/redis:/data
+    command: ["redis-server", "--appendonly", "yes"]
