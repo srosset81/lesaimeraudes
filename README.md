@@ -34,11 +34,11 @@ docker-compose up -d
 ### Access the middleware REPL
 
 ```
-docker exec -it middleware pm2 attach 0
+docker exec -it middleware_lesaimeraudes pm2 attach 0
 ```
 
 ### Follow the logs
 
 ```
-docker exec -it middleware pm2 logs
+docker exec -it middleware_lesaimeraudes pm2 logs
 ```
