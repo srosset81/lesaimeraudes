@@ -18,6 +18,10 @@
     "id": "@id",
     "type": "@type",
 
+    "image": {
+      "@id": "as:image",
+      "@type": "@id"
+    },
     "pair:image": {
       "@type": "@id"
     },
